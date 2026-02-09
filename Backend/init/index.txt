@@ -1,0 +1,5 @@
+Here we want to initialize the database for the data stored in the data.js 
+Data.js is a file which consists of array of objects which we want to store in the database.
+So we will make one index.js
+Then 1st we will connect mongoose to the database.
+Then we will import the data from data.js and then we will insert the data in the database.
