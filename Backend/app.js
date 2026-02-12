@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Listing = require('./models/listings.models.js');
 const {data} = require("./init/data.js")
+const ExpressError = require('./ExpressError.js');
 const cors = require('cors');
 const app = express();
 const PORT = 3000;
@@ -27,6 +28,18 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
+// -------------------------------
+
+app.get("/admin", (req,res)=>{
+  throw new ExpressError(403, "You are not authorized to access this route");
+})
+
+app.use((err, req, res, next) => {
+  const { status = 500, message = "Something went wrong" } = err;
+  res.status(status).json({ error: message });
+});
+
+// -------------------------------
 app.get("/listings", async(req,res)=>{
   try {
     const listings = await Listing.find({});

@@ -44,7 +44,7 @@ function ListingDetail({ listings, setListings }) {
       <div className="flex items-center justify-between">
         <span className="text-2xl font-bold">${listing.price} / night</span>
         <div className="flex gap-3">
-          <button onClick={() => navigate(`/listing/${id}/edit`)} className="px-6 py-2 border border-gray-800 rounded-lg font-semibold hover:bg-gray-100 transition">Edit</button>
+          <button onClick={() => navigate(`/listing/${id}/edit`)} className="px-6 py-2 border text-white border-gray-800 rounded-lg font-semibold hover:bg-gray-100 transition">Edit</button>
           <button onClick={handleDelete} className="px-6 py-2 bg-[#FF385C] text-white rounded-lg font-semibold hover:bg-[#E31C5F] transition">Delete</button>
         </div>
       </div>

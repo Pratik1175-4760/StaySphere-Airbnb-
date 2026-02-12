@@ -7,6 +7,7 @@ import ListingDetail from './components/ListingDetail'
 import EditListing from './components/EditListing'
 import NewListing from './components/NewListing'
 import Navbar from './Navbar'
+import Footer from './Footer'
 
 function App() {
   const [listings,setListings] = useState([]);
@@ -25,7 +26,7 @@ function App() {
     <div className="min-h-screen bg-white">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7-xl mx-auto px-4 sm:px-6 lg:px-8">
         <Routes>
           <Route path="/" element={
             <div>
@@ -74,6 +75,7 @@ function App() {
           <Route path="/new" element={<NewListing />} />
         </Routes>
       </div>
+      <Footer />
     </div>
   )
 }
