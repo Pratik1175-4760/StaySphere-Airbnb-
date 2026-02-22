@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import FlashMessage from './FlashMessage';
 
-function NewListing() {
+function NewListing({setListings}) {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [flashMessage, setFlashMessage] = useState({ message: '', type: '' });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -104,17 +106,40 @@ function NewListing() {
     // Check if there are any errors
     const hasErrors = Object.values(newErrors).some(error => error !== '');
     if (hasErrors) {
-      alert('Please fix all errors before submitting');
+      setFlashMessage({ 
+        message: 'Please fix all errors before submitting', 
+        type: 'error' 
+      });
       return;
     }
     
     try {
       const response = await axios.post('http://localhost:3000/listings', formData);
-      alert('Listing created successfully!');
-      navigate('/');
+      
+      setListings(prev => [...prev, response.data.listing]);
+      // Show success message
+      setFlashMessage({ 
+        message: response.data.message || 'Listing created successfully!', 
+        type: 'success' 
+      });
+
+      setFormData(formData);
+      
+      // Navigate after 2 seconds
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+
+
+      
     } catch (err) {
       console.error("Error creating listing", err);
-      alert("Error creating listing: " + err.message);
+      
+      // Show error message
+      setFlashMessage({ 
+        message: err.response?.data?.error || 'Error creating listing. Please try again.', 
+        type: 'error' 
+      });
     }
   };
 
@@ -133,238 +158,247 @@ function NewListing() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-10">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="bg-rose-100 p-3 rounded-xl">
-            <i className="fa-solid fa-house-chimney text-rose-600 text-2xl"></i>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Host your home</h1>
-            <p className="text-gray-500">Share your space with travelers worldwide</p>
-          </div>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-              Title
-              <span className="text-rose-500 ml-1">*</span>
-            </label>
-            <input
-              type="text"
-              name="title"
-              placeholder="e.g. Cozy Beachfront Cottage"
-              value={formData.title}
-              onChange={handleChange}
-              onBlur={() => handleBlur('title')}
-              className={getInputClasses('title')}
-            />
-            {touched.title && errors.title && (
-              <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
-                <i className="fa-solid fa-circle-exclamation"></i>
-                <span>{errors.title}</span>
-              </div>
-            )}
-            {touched.title && !errors.title && formData.title && (
-              <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
-                <i className="fa-solid fa-circle-check"></i>
-                <span>Looks good!</span>
-              </div>
-            )}
-          </div>
+    <>
+      {/* Flash Message Component */}
+      <FlashMessage 
+        message={flashMessage.message} 
+        type={flashMessage.type}
+        onClose={() => setFlashMessage({ message: '', type: '' })}
+      />
 
-          {/* Description */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-              Description
-              <span className="text-rose-500 ml-1">*</span>
-            </label>
-            <textarea
-              name="description"
-              placeholder="What makes your place special? Describe the amenities, location, and experience guests can expect..."
-              value={formData.description}
-              onChange={handleChange}
-              onBlur={() => handleBlur('description')}
-              rows="4"
-              className={getInputClasses('description')}
-            />
-            {touched.description && errors.description && (
-              <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
-                <i className="fa-solid fa-circle-exclamation"></i>
-                <span>{errors.description}</span>
-              </div>
-            )}
-            {touched.description && !errors.description && formData.description && (
-              <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
-                <i className="fa-solid fa-circle-check"></i>
-                <span>Great description!</span>
-              </div>
-            )}
-          </div>
-
-          {/* Price and Image URL */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-                <i className="fa-solid fa-indian-rupee-sign mr-2 text-rose-500"></i>
-                Price per night
-                <span className="text-rose-500 ml-1">*</span>
-              </label>
-              <input
-                type="number"
-                name="price"
-                placeholder="1500"
-                value={formData.price}
-                onChange={handleChange}
-                onBlur={() => handleBlur('price')}
-                className={getInputClasses('price')}
-              />
-              {touched.price && errors.price && (
-                <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
-                  <i className="fa-solid fa-circle-exclamation"></i>
-                  <span>{errors.price}</span>
-                </div>
-              )}
-              {touched.price && !errors.price && formData.price && (
-                <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
-                  <i className="fa-solid fa-circle-check"></i>
-                  <span>Valid price</span>
-                </div>
-              )}
+      <div className="max-w-2xl mx-auto py-12 px-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-10">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="bg-rose-100 p-3 rounded-xl">
+              <i className="fa-solid fa-house-chimney text-rose-600 text-2xl"></i>
             </div>
-
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Host your home</h1>
+              <p className="text-gray-500">Share your space with travelers worldwide</p>
+            </div>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-                <i className="fa-solid fa-image mr-2 text-rose-500"></i>
-                Image URL
+                Title
                 <span className="text-rose-500 ml-1">*</span>
               </label>
               <input
                 type="text"
-                name="imageUrl"
-                placeholder="https://images.unsplash.com/..."
-                value={formData.image.url}
+                name="title"
+                placeholder="e.g. Cozy Beachfront Cottage"
+                value={formData.title}
                 onChange={handleChange}
-                onBlur={() => handleBlur('imageUrl')}
-                className={getInputClasses('imageUrl')}
+                onBlur={() => handleBlur('title')}
+                className={getInputClasses('title')}
               />
-              {touched.imageUrl && errors.imageUrl && (
+              {touched.title && errors.title && (
                 <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
                   <i className="fa-solid fa-circle-exclamation"></i>
-                  <span>{errors.imageUrl}</span>
+                  <span>{errors.title}</span>
                 </div>
               )}
-              {touched.imageUrl && !errors.imageUrl && formData.image.url && (
+              {touched.title && !errors.title && formData.title && (
                 <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
                   <i className="fa-solid fa-circle-check"></i>
-                  <span>Valid URL</span>
+                  <span>Looks good!</span>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Location and Country */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Description */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-                <i className="fa-solid fa-location-dot mr-2 text-rose-500"></i>
-                Location
+                Description
                 <span className="text-rose-500 ml-1">*</span>
               </label>
-              <input
-                type="text"
-                name="location"
-                placeholder="e.g. Malibu"
-                value={formData.location}
+              <textarea
+                name="description"
+                placeholder="What makes your place special? Describe the amenities, location, and experience guests can expect..."
+                value={formData.description}
                 onChange={handleChange}
-                onBlur={() => handleBlur('location')}
-                className={getInputClasses('location')}
+                onBlur={() => handleBlur('description')}
+                rows="4"
+                className={getInputClasses('description')}
               />
-              {touched.location && errors.location && (
+              {touched.description && errors.description && (
                 <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
                   <i className="fa-solid fa-circle-exclamation"></i>
-                  <span>{errors.location}</span>
+                  <span>{errors.description}</span>
                 </div>
               )}
-              {touched.location && !errors.location && formData.location && (
+              {touched.description && !errors.description && formData.description && (
                 <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
                   <i className="fa-solid fa-circle-check"></i>
-                  <span>Valid location</span>
+                  <span>Great description!</span>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-                <i className="fa-solid fa-earth-americas mr-2 text-rose-500"></i>
-                Country
-                <span className="text-rose-500 ml-1">*</span>
-              </label>
-              <input
-                type="text"
-                name="country"
-                placeholder="e.g. United States"
-                value={formData.country}
-                onChange={handleChange}
-                onBlur={() => handleBlur('country')}
-                className={getInputClasses('country')}
-              />
-              {touched.country && errors.country && (
-                <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
-                  <i className="fa-solid fa-circle-exclamation"></i>
-                  <span>{errors.country}</span>
-                </div>
-              )}
-              {touched.country && !errors.country && formData.country && (
-                <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
-                  <i className="fa-solid fa-circle-check"></i>
-                  <span>Valid country</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Image Preview */}
-          {formData.image.url && !errors.imageUrl && (
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700 ml-1">Preview</label>
-              <div className="border-2 border-gray-200 rounded-xl overflow-hidden">
-                <img 
-                  src={formData.image.url} 
-                  alt="Preview" 
-                  className="w-full h-64 object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    setErrors({ ...errors, imageUrl: 'Failed to load image. Please check the URL.' });
-                  }}
+            {/* Price and Image URL */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                  <i className="fa-solid fa-indian-rupee-sign mr-2 text-rose-500"></i>
+                  Price per night
+                  <span className="text-rose-500 ml-1">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  placeholder="1500"
+                  value={formData.price}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('price')}
+                  className={getInputClasses('price')}
                 />
+                {touched.price && errors.price && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{errors.price}</span>
+                  </div>
+                )}
+                {touched.price && !errors.price && formData.price && (
+                  <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-check"></i>
+                    <span>Valid price</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                  <i className="fa-solid fa-image mr-2 text-rose-500"></i>
+                  Image URL
+                  <span className="text-rose-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="imageUrl"
+                  placeholder="https://images.unsplash.com/..."
+                  value={formData.image.url}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('imageUrl')}
+                  className={getInputClasses('imageUrl')}
+                />
+                {touched.imageUrl && errors.imageUrl && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{errors.imageUrl}</span>
+                  </div>
+                )}
+                {touched.imageUrl && !errors.imageUrl && formData.image.url && (
+                  <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-check"></i>
+                    <span>Valid URL</span>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <button
-              type="submit"
-              className="flex-1 bg-rose-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-rose-600 active:scale-95 transition-all shadow-md flex items-center justify-center space-x-2"
-            >
-              <i className="fa-solid fa-check"></i>
-              <span>Create Listing</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="flex-1 bg-white text-gray-700 py-3 px-6 rounded-xl font-semibold border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center space-x-2"
-            >
-              <i className="fa-solid fa-xmark"></i>
-              <span>Cancel</span>
-            </button>
-          </div>
-        </form>
+            {/* Location and Country */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                  <i className="fa-solid fa-location-dot mr-2 text-rose-500"></i>
+                  Location
+                  <span className="text-rose-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  placeholder="e.g. Malibu"
+                  value={formData.location}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('location')}
+                  className={getInputClasses('location')}
+                />
+                {touched.location && errors.location && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{errors.location}</span>
+                  </div>
+                )}
+                {touched.location && !errors.location && formData.location && (
+                  <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-check"></i>
+                    <span>Valid location</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                  <i className="fa-solid fa-earth-americas mr-2 text-rose-500"></i>
+                  Country
+                  <span className="text-rose-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="country"
+                  placeholder="e.g. United States"
+                  value={formData.country}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('country')}
+                  className={getInputClasses('country')}
+                />
+                {touched.country && errors.country && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{errors.country}</span>
+                  </div>
+                )}
+                {touched.country && !errors.country && formData.country && (
+                  <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                    <i className="fa-solid fa-circle-check"></i>
+                    <span>Valid country</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Image Preview */}
+            {formData.image.url && !errors.imageUrl && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 ml-1">Preview</label>
+                <div className="border-2 border-gray-200 rounded-xl overflow-hidden">
+                  <img 
+                    src={formData.image.url} 
+                    alt="Preview" 
+                    className="w-full h-64 object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      setErrors({ ...errors, imageUrl: 'Failed to load image. Please check the URL.' });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <button
+                type="submit"
+                className="flex-1 bg-rose-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-rose-600 active:scale-95 transition-all shadow-md flex items-center justify-center space-x-2"
+              >
+                <i className="fa-solid fa-check"></i>
+                <span>Create Listing</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="flex-1 bg-white text-gray-700 py-3 px-6 rounded-xl font-semibold border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center space-x-2"
+              >
+                <i className="fa-solid fa-xmark"></i>
+                <span>Cancel</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

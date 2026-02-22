@@ -1,0 +1,198 @@
+STATE:
+1. Stateful Protocol: A protocol that maintains state information across multiple interactions or sessions. It allows for the tracking of user interactions and can provide a more personalized experience.
+2. Stateless Protocol: A protocol that does not maintain any state information between interactions. Each interaction is treated as independent, and the server does not retain any information about previous interactions. This can lead to simpler and more scalable systems, but may require additional effort to manage user sessions and interactions.
+
+Steps to use npm express-session:
+1. Install the express-session package using npm:
+   ```
+   npm install express-session
+   ```
+2. Import the express-session module in your application:
+    ```javascript
+    const session = require('express-session');
+    ```
+3. Configure the session middleware in your Express application:
+    ```javascript
+    app.use(session({
+      secret: 'your_secret_key',
+      resave: false,
+      saveUninitialized: true,
+      cookie: { secure: true }
+    }));
+    ```
+4. Use the session object to store and retrieve data in your routes:
+    ```javascript
+    app.get('/set-session', (req, res) => {
+      req.session
+      .user = 'John Doe';
+      res.send('Session data set');
+    });
+    app.get('/get-session', (req, res) => {
+      const user = req.session.user;
+      res.send(`Session data: ${user}`);
+    });
+    ```
+5. Start your Express server and test the session functionality:
+    ```javascript
+    app.listen(3000, () => {
+      console.log('Server is running on port 3000');
+    });
+    ```
+
+Note: This is required in frontend if used in react
+import axios from 'axios';
+axios.defaults.withCredentials = true;
+
+This tells axios to include cookies in requests, which is necessary for maintaining sessions when making API calls from the frontend to the backend. Make sure to configure your backend to allow cross-origin requests and to set the appropriate CORS headers if your frontend and backend are hosted on different domains.
+
+Note: Make sure to replace 'your_secret_key' with a strong, unique secret key for your application to ensure the security of your sessions.
+
+Steps to use connect-flash:
+1. Install the connect-flash package using npm:
+   ```
+   npm install connect-flash
+   ```
+2. Import the connect-flash module in your application:
+    ```javascript
+    const flash = require('connect-flash');
+    ```
+3. Configure the flash middleware in your Express application:
+    ```javascript
+    app.use(flash());
+    ```
+4. Use the flash object to set and retrieve flash messages in your routes:
+    ```javascript
+    app.get('/set-flash', (req, res) => {
+      req.flash('info', 'Flash message set');
+      res.send('Flash message set');
+    });
+    app.get('/get-flash', (req, res) => {
+      const messages = req.flash('info');
+      res.send(`Flash messages: ${messages}`);
+    });
+    ```
+5. Start your Express server and test the flash message functionality:
+    ```javascript
+    app.listen(3000, () => {
+      console.log('Server is running on port 3000');
+    });
+    ```
+Note: Flash messages are typically used to display temporary messages to users, such as success or error notifications, and are cleared after being displayed once.
+
+Now, to display the flash message in the view, you can use a templating engine like EJS or Pug. For example, if you're using EJS, you can pass the flash messages to your view and display them as follows:
+
+In your route handler, pass the flash messages to the view:
+```javascript
+app.get('/some-route', (req, res) => {
+  const messages = req.flash('info');
+  res.render('your-view', { messages });
+});
+```
+In your EJS view (your-view.ejs), you can display the flash messages:
+```html
+<% if (messages.length > 0) { %>
+  <div class="flash-messages">
+    <% messages.forEach(function(message) { %>
+      <p><%= message %></p>
+    <% }); %>
+  </div>
+<% } %>
+```
+
+Now when you are using react, you can use the flash messages in your component by passing them as props from your server-side rendering or by using an API to fetch the flash messages and display them in your React component.
+```javascript
+import React from 'react';
+const FlashMessages = ({ messages }) => {
+  return (
+    <div className="flash-messages">
+      {messages.map((message, index) => (
+        <p key={index}>{message}</p>
+      ))}
+    </div>
+  );
+};
+export default FlashMessages;
+```
+In your server-side rendering or API response, you can pass the flash messages to your React component:
+```javascript
+app.get('/some-route', (req, res) => {
+  const messages = req.flash('info');
+  res.render('your-view', { messages });
+});
+// Or if you're using an API to fetch flash messages
+app.get('/api/flash-messages', (req, res) => {
+  const messages = req.flash('info');
+  res.json({ messages });
+});
+In your React component, you can fetch the flash messages from the API and pass them to the FlashMessages component:
+```javascriptimport React, { useEffect, useState } from 'react';
+import FlashMessages from './FlashMessages';
+const YourComponent = () => {
+  const [messages, setMessages] = useState([]);
+  
+  useEffect(() => {
+    fetch('/api/flash-messages')
+      .then(response => response.json())
+      .then(data => setMessages(data.messages));
+  }, []);
+  
+  return (
+    <div>
+      <FlashMessages messages={messages} />
+      {/* Other component content */}
+    </div>
+  );
+};
+
+Now we can pass this flash message to res.locals in our middleware and access it in our views:
+```javascript
+app.use((req, res, next) => {
+  res.locals.flashMessages = req.flash('info');
+  next();
+});
+
+In your view, you can access the flash messages using react:
+```javascript
+import React from 'react';
+const FlashMessages = ({ flashMessages }) => {
+  return (
+    <div className="flash-messages">
+      {flashMessages.map((message, index) => (
+        <p key={index}>{message}</p>
+      ))}
+    </div>
+  );
+};
+export default FlashMessages;
+
+In your server-side rendering or API response, you can pass the flash messages to your React component:
+```javascript
+app.get('/some-route', (req, res) => {
+  const flashMessages = req.flash('info');
+  res.render('your-view', { flashMessages });
+});
+
+--The use of passing the flash messages to res.locals allows you to access the flash messages in any view without having to pass them explicitly in each route handler. This can simplify your code and make it easier to manage flash messages across your application. 
+
+--So, in the above example,
+we have set the flash messages in the middleware and then accessed them in the view using react. This way, you can easily display flash messages to users in your React components without having to manage the flash messages in each route handler.
+
+So lets say we have to flash success and error messages, we can set them in our route handlers like this:
+```javascript
+app.get('/some-route', (req, res) => {
+  // Set success message
+  req.flash('success', 'Operation successful');
+  
+  // Set error message
+  req.flash('error', 'An error occurred');
+  
+  res.render('your-view');
+});
+
+And in our middleware, we can pass both success and error messages to res.locals:
+```javascript
+app.use((req, res, next) => {
+  res.locals.successMessages = req.flash('success');
+  res.locals.errorMessages = req.flash('error');
+  next();
+});

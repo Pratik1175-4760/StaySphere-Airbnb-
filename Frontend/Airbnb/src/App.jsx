@@ -11,6 +11,7 @@ import Footer from './Footer'
 
 function App() {
   const [listings,setListings] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   useEffect(()=>{
     axios.get("http://localhost:3000/listings")
@@ -20,8 +21,12 @@ function App() {
     .catch((err)=>{
       console.error(err);
     })
-  },[]);
+  },[location,refreshTrigger]);
   
+  const refreshListings = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -70,9 +75,9 @@ function App() {
               </div>
             </div>
           } />
-          <Route path="/listing/:id" element={<ListingDetail />} />
+          <Route path="/listing/:id" element={<ListingDetail onDelete={refreshListings}/>} />
           <Route path="/listing/:id/edit" element={<EditListing />} />
-          <Route path="/new" element={<NewListing />} />
+          <Route path="/new" element={<NewListing setListings={setListings} />} />
         </Routes>
       </div>
       <Footer />

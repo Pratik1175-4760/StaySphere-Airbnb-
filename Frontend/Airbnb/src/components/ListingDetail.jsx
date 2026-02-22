@@ -1,54 +1,147 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Review from './Review.jsx';
 
-function ListingDetail({ listings, setListings }) {
+function ListingDetail({onDelete}) {
   const { id } = useParams();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchListing = () => {
     axios.get(`http://localhost:3000/listings/${id}`)
       .then((res) => {
         setListing(res.data);
-        setLoading(false);
+        setLoading(false);iu
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchListing();
   }, [id]);
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Are you sure you want to delete this listing?")) return;
     try {
       await axios.delete(`http://localhost:3000/listings/${id}`);
-      setListings(listings.filter(item => item._id !== id));
       navigate("/");
+      if (onDelete) onDelete();
     } catch (err) {
-      alert("Delete failed",err);
+      alert("Delete failed");
     }
   };
 
-  if (loading) return <div className="text-center py-10">Loading...</div>;
-  if (!listing) return <div className="text-center py-10">Not found</div>;
+  const handleReviewAdded = (newReview, deletedReviewId) => {
+    if (deletedReviewId) {
+      // Remove review from list
+      setListing(prev => ({
+        ...prev,
+        reviews: prev.reviews.filter(r => r._id !== deletedReviewId)
+      }));
+    } else {
+      // Add new review to list
+      setListing(prev => ({
+        ...prev,
+        reviews: [...prev.reviews, newReview]
+      }));
+    }
+  };
 
-  return (
-    <div className="max-w-3xl mx-auto py-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">{listing.title}</h1>
-      <div className="rounded-2xl overflow-hidden mb-6 h-96">
-        <img src={listing.image?.url} className="w-full h-full object-cover" alt={listing.title} />
-      </div>
-      <div className="border-b border-gray-200 pb-6 mb-6">
-        <h2 className="text-xl font-semibold mb-2">Hosted in {listing.location}</h2>
-        <p className="text-gray-600 leading-relaxed">{listing.description}</p>
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-2xl font-bold">${listing.price} / night</span>
-        <div className="flex gap-3">
-          <button onClick={() => navigate(`/listing/${id}/edit`)} className="px-6 py-2 border text-white border-gray-800 rounded-lg font-semibold hover:bg-gray-100 transition">Edit</button>
-          <button onClick={handleDelete} className="px-6 py-2 bg-[#FF385C] text-white rounded-lg font-semibold hover:bg-[#E31C5F] transition">Delete</button>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <i className="fa-solid fa-spinner fa-spin text-4xl text-rose-500 mb-4"></i>
+          <p className="text-gray-500 font-medium">Loading...</p>
         </div>
       </div>
+    );
+  }
+
+  if (!listing) {
+    return (
+      <div className="text-center py-12">
+        <i className="fa-regular fa-folder-open text-6xl text-gray-300 mb-4"></i>
+        <p className="text-gray-500 text-lg">Listing not found</p>
+        <Link to="/" className="text-rose-500 hover:underline mt-4 inline-block">
+          Go back home
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto py-8">
+      {/* Back Button */}
+      <Link 
+        to="/" 
+        className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+      >
+        <i className="fa-solid fa-arrow-left"></i>
+        <span>Back to listings</span>
+      </Link>
+
+      {/* Title */}
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">{listing.title}</h1>
+
+      {/* Image */}
+      <div className="rounded-2xl overflow-hidden mb-8 aspect-video">
+        {listing.image?.url ? (
+          <img 
+            src={listing.image.url} 
+            className="w-full h-full object-cover" 
+            alt={listing.title} 
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <i className="fa-regular fa-image text-6xl text-gray-400"></i>
+          </div>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="border-b border-gray-200 pb-6 mb-6">
+        <div className="flex items-center space-x-2 text-gray-600 mb-4">
+          <i className="fa-solid fa-location-dot text-rose-500"></i>
+          <span className="text-lg">{listing.location}, {listing.country}</span>
+        </div>
+        <p className="text-gray-700 leading-relaxed text-lg">{listing.description}</p>
+      </div>
+
+      {/* Price and Actions */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <span className="text-3xl font-bold text-gray-900">₹ {listing.price}</span>
+          <span className="text-gray-500 text-lg"> / night</span>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => navigate(`/listing/${id}/edit`)} 
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center space-x-2"
+          >
+            <i className="fa-solid fa-pen"></i>
+            <span>Edit</span>
+          </button>
+          <button 
+            onClick={handleDelete} 
+            className="px-6 py-2 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-600 transition-all flex items-center space-x-2"
+          >
+            <i className="fa-solid fa-trash"></i>
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <Review 
+        listingId={id} 
+        reviews={listing.reviews || []} 
+        onReviewAdded={handleReviewAdded}
+      />
     </div>
   );
 }
+
 export default ListingDetail;

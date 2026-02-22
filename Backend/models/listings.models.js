@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+const Review = require('./review.models.js');
 const listingSchema = new mongoose.Schema(
   {
     title:{
@@ -31,7 +31,14 @@ const listingSchema = new mongoose.Schema(
     country:{
       type: String,
       required: true
-    }
+    },
+    reviews: 
+    [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Review'
+      }
+    ]
   },
   {timestamps: false}
 );
