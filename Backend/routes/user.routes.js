@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/user.js');
+const User = require('../models/user.models.js');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/auth.js');
+const { JWT_SECRET } = require('../middleware/auth.middlewares.js');
 
 // Signup Route
 router.post('/signup', async (req, res) => {

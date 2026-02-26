@@ -1,14 +1,14 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
-const Listing = require('./models/listings.models.js');
+const Listing = require('./models/listing.models.js');
 const Review = require('./models/review.models.js');
 const {data} = require("./init/data.js");
 const cors = require('cors');
 
-const listingRouter = require('./routes/listings.js');
-const reviewRouter = require('./routes/review.js');
-const userRouter = require('./routes/user.js');
+const listingRouter = require('./routes/listing.routes.js');
+const reviewRouter = require('./routes/review.routes.js');
+const userRouter = require('./routes/user.routes.js');
 
 const app = express();
 const PORT = 3000;
@@ -47,7 +47,7 @@ app.use('/listings/:id/reviews', reviewRouter);
 // Initialize/Reset database
 app.get("/init", async (req, res) => {
   try {
-    const User = require('./models/user.js');
+    const User = require('./models/user.models.js');
     
     // 1. Clear all data
     await Listing.deleteMany({});
