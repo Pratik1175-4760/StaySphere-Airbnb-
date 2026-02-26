@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import Review from './Review.jsx';
 
 function ListingDetail({onDelete}) {
@@ -8,12 +9,13 @@ function ListingDetail({onDelete}) {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const fetchListing = () => {
     axios.get(`http://localhost:3000/listings/${id}`)
       .then((res) => {
         setListing(res.data);
-        setLoading(false);iu
+        setLoading(false);
       })
       .catch(() => setLoading(false));
   };
@@ -29,19 +31,17 @@ function ListingDetail({onDelete}) {
       navigate("/");
       if (onDelete) onDelete();
     } catch (err) {
-      alert("Delete failed");
+      alert(err.response?.data?.error || "Delete failed");
     }
   };
 
   const handleReviewAdded = (newReview, deletedReviewId) => {
     if (deletedReviewId) {
-      // Remove review from list
       setListing(prev => ({
         ...prev,
         reviews: prev.reviews.filter(r => r._id !== deletedReviewId)
       }));
     } else {
-      // Add new review to list
       setListing(prev => ({
         ...prev,
         reviews: [...prev.reviews, newReview]
@@ -72,9 +72,10 @@ function ListingDetail({onDelete}) {
     );
   }
 
+  const isOwner = listing.isOwner;
+
   return (
     <div className="max-w-4xl mx-auto py-8">
-      {/* Back Button */}
       <Link 
         to="/" 
         className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
@@ -83,10 +84,8 @@ function ListingDetail({onDelete}) {
         <span>Back to listings</span>
       </Link>
 
-      {/* Title */}
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{listing.title}</h1>
 
-      {/* Image */}
       <div className="rounded-2xl overflow-hidden mb-8 aspect-video">
         {listing.image?.url ? (
           <img 
@@ -101,7 +100,6 @@ function ListingDetail({onDelete}) {
         )}
       </div>
 
-      {/* Details */}
       <div className="border-b border-gray-200 pb-6 mb-6">
         <div className="flex items-center space-x-2 text-gray-600 mb-4">
           <i className="fa-solid fa-location-dot text-rose-500"></i>
@@ -110,31 +108,32 @@ function ListingDetail({onDelete}) {
         <p className="text-gray-700 leading-relaxed text-lg">{listing.description}</p>
       </div>
 
-      {/* Price and Actions */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <span className="text-3xl font-bold text-gray-900">₹ {listing.price}</span>
           <span className="text-gray-500 text-lg"> / night</span>
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={() => navigate(`/listing/${id}/edit`)} 
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center space-x-2"
-          >
-            <i className="fa-solid fa-pen"></i>
-            <span>Edit</span>
-          </button>
-          <button 
-            onClick={handleDelete} 
-            className="px-6 py-2 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-600 transition-all flex items-center space-x-2"
-          >
-            <i className="fa-solid fa-trash"></i>
-            <span>Delete</span>
-          </button>
-        </div>
+        
+        {isOwner && (
+          <div className="flex gap-3">
+            <button 
+              onClick={() => navigate(`/listing/${id}/edit`)} 
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center space-x-2"
+            >
+              <i className="fa-solid fa-pen"></i>
+              <span>Edit</span>
+            </button>
+            <button 
+              onClick={handleDelete} 
+              className="px-6 py-2 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-600 transition-all flex items-center space-x-2"
+            >
+              <i className="fa-solid fa-trash"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Reviews Section */}
       <Review 
         listingId={id} 
         reviews={listing.reviews || []} 

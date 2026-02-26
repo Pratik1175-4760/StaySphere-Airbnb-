@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useAuth } from '../context/AuthContext';
 import FlashMessage from './FlashMessage';
 
 function Review({ listingId, reviews, onReviewAdded }) {
@@ -9,6 +10,7 @@ function Review({ listingId, reviews, onReviewAdded }) {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [flashMessage, setFlashMessage] = useState({ message: '', type: '' });
+  const { user } = useAuth();
 
   // Submit review
   const handleSubmit = async (e) => {
@@ -121,13 +123,21 @@ function Review({ listingId, reviews, onReviewAdded }) {
 
           </div>
 
-          {!showForm && (
+          {/* Only show "Write Review" button if logged in */}
+          {!showForm && user && (
             <button
               onClick={() => setShowForm(true)}
               className="bg-rose-500 hover:bg-rose-600 text-white px-5 py-2 rounded-xl font-semibold transition"
             >
               Write Review
             </button>
+          )}
+
+          {/* Show login prompt if not logged in */}
+          {!user && (
+            <p className="text-sm text-gray-500">
+              Please <a href="/login" className="text-rose-500 hover:underline">login</a> to write a review
+            </p>
           )}
 
         </div>
@@ -227,55 +237,65 @@ function Review({ listingId, reviews, onReviewAdded }) {
 
               <div className="flex justify-between">
 
-                <div>
+                <div className="flex-1">
 
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    {/* User Avatar */}
+                    <div className="w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center text-white font-semibold">
+                      {review.owner?.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
 
-                    {[1,2,3,4,5].map((star) => (
+                    <div>
+                      {/* Username */}
+                      <p className="font-semibold text-gray-900">
+                        {review.owner?.username || 'Anonymous'}
+                      </p>
 
-                      <i
-                        key={star}
-                        className={`fa-solid fa-star ${
-                          star <= review.rating
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                      ></i>
-
-                    ))}
-
+                      {/* Stars */}
+                      <div className="flex gap-1">
+                        {[1,2,3,4,5].map((star) => (
+                          <i
+                            key={star}
+                            className={`fa-solid fa-star text-sm ${
+                              star <= review.rating
+                                ? "text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          ></i>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
 
                   {/* Date */}
-                  <div className="text-gray-500 text-sm mb-2">
-
+                  <div className="text-gray-500 text-sm mb-2 ml-13">
                     {new Date(review.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
                     })}
-
                   </div>
 
 
                   {/* Comment */}
-                  <div className="text-gray-800">
+                  <div className="text-gray-800 ml-13">
                     {review.comment}
                   </div>
 
                 </div>
 
 
-                {/* Delete */}
-                <button
-                  onClick={() => handleDelete(review._id)}
-                  className="text-gray-400 hover:text-red-500 transition"
-                  title="Delete review"
-                >
-                  <i className="fa-solid fa-trash"></i>
-                </button>
+                {/* Delete Button - Only show if user is review owner */}
+                {review.isOwner && (
+                  <button
+                    onClick={() => handleDelete(review._id)}
+                    className="text-red-400 hover:text-red-500 transition h-fit"
+                    title="Delete review"
+                  >
+                    <i className="fa-solid fa-trash"></i>
+                  </button>
+                )}
 
               </div>
 

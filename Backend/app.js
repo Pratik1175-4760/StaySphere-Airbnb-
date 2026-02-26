@@ -1,36 +1,26 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const Listing = require('./models/listings.models.js');
 const Review = require('./models/review.models.js');
 const {data} = require("./init/data.js");
-const flash = require('connect-flash');
 const cors = require('cors');
-const listings = require('./routes/listings.js');
-const reviews = require('./routes/review.js');
 
-// 1. Session middleware (BEFORE cors and express.json)
-const sessionOptions = { 
-  secret: "mysupersecretcode",
-  resave: false,
-  saveUninitialized: true,  // Changed to true
-  cookie: {
-    httpOnly: true,
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,  // 7 days
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  }
-};const app = express();
+const listingRouter = require('./routes/listings.js');
+const reviewRouter = require('./routes/review.js');
+const userRouter = require('./routes/user.js');
+
+const app = express();
 const PORT = 3000;
-
 const MONGO_URL = 'mongodb://127.0.0.1:27017/airbnb';
 
+// Database connection
 async function main(){
   await mongoose.connect(MONGO_URL);
   
   const count = await Listing.countDocuments();
   if (count === 0) {
-    await Listing.insertMany(data);
-    console.log('Database seeded with sample data');
+    console.log('No listings found. Run /init route to seed database.');
   }
 }
 
@@ -38,38 +28,123 @@ main()
 .then(() => console.log('Connected to MongoDB'))
 .catch((err) => console.log(err));
 
-// MIDDLEWARE ORDER IS IMPORTANT!
+// MIDDLEWARE (CORRECT ORDER)
+app.use(cookieParser());
 
-
-
-app.use(session(sessionOptions));
-app.use(flash());
-
-// 2. CORS (AFTER session, configure properly for credentials)
 app.use(cors({
-  origin: 'http://localhost:5173',  // Your React app URL
-  credentials: true  // Allow cookies/session
+  origin: 'http://localhost:5173',
+  credentials: true
 }));
 
-// 3. Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Routes
-app.use('/', listings);
-app.use('/listings/:id/reviews', reviews);
+// ROUTES
+app.use('/', userRouter);
+app.use('/', listingRouter);
+app.use('/listings/:id/reviews', reviewRouter);
 
 // Initialize/Reset database
 app.get("/init", async (req, res) => {
-  await Listing.deleteMany({});
-  await Review.deleteMany({});
-  await Listing.insertMany(data);
-  res.send("Database re-initialized with sample data");
+  try {
+    const User = require('./models/user.js');
+    
+    // 1. Clear all data
+    await Listing.deleteMany({});
+    await Review.deleteMany({});
+    await User.deleteMany({});
+    
+    // 2. Create demo user
+    const demoUser = new User({
+      username: 'demo',
+      email: 'demo@example.com',
+      password: 'Demo123'
+    });
+    await demoUser.save();
+    
+    // 3. Add owner to all sample listings
+    const listingsWithOwner = data.map(listing => ({
+      ...listing,
+      owner: demoUser._id
+    }));
+    
+    // 4. Insert listings
+    await Listing.insertMany(listingsWithOwner);
+    
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Database Initialized</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+          }
+          .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 { color: #e91e63; }
+          .credentials {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          a {
+            display: inline-block;
+            background: #e91e63;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+          }
+          a:hover { background: #c2185b; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>✅ Database Initialized Successfully!</h1>
+          <p><strong>${data.length} listings</strong> have been added to the database.</p>
+          
+          <div class="credentials">
+            <h3>Demo Account Credentials:</h3>
+            <p>👤 <strong>Username:</strong> demo</p>
+            <p>🔒 <strong>Password:</strong> Demo123</p>
+          </div>
+          
+          <p>You can now login with these credentials to:</p>
+          <ul>
+            <li>View all listings</li>
+            <li>Edit demo listings</li>
+            <li>Delete demo listings</li>
+            <li>Create new listings</li>
+          </ul>
+          
+          <a href="http://localhost:5173">Go to App →</a>
+        </div>
+      </body>
+      </html>
+    `);
+    
+  } catch (err) {
+    console.error('Database initialization error:', err);
+    res.status(500).send(`
+      <h1>Error Initializing Database</h1>
+      <p>${err.message}</p>
+      <pre>${err.stack}</pre>
+    `);
+  }
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-

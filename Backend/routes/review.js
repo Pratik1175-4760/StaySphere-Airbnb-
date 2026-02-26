@@ -1,7 +1,8 @@
 const express = require('express');
-const router = express.Router({ mergeParams: true });  // Important for :id param
+const router = express.Router({ mergeParams: true });
 const Listing = require('../models/listings.models.js');
 const Review = require('../models/review.models.js');
+const { authenticateToken, optionalAuth } = require('../middleware/auth.js');
 const Joi = require('joi');
 
 // Joi Schema for review
@@ -10,8 +11,8 @@ const reviewSchema = Joi.object({
   rating: Joi.number().min(1).max(5).required(),
 });
 
-// POST create review
-router.post('/', async (req, res) => {
+// POST create review (PROTECTED - must be logged in)
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { error, value } = reviewSchema.validate(req.body);
     
@@ -24,48 +25,56 @@ router.post('/', async (req, res) => {
     
     const listing = await Listing.findById(req.params.id);
     if (!listing) {
-      req.flash('error', 'Listing not found');
       return res.status(404).json({ error: "Listing not found" });
     }
     
-    const newReview = new Review(value);
+    // Create review with owner from JWT
+    const newReview = new Review({
+      ...value,
+      owner: req.user.userId  // ← Add owner from JWT
+    });
+    
     await newReview.save();
     
     listing.reviews.push(newReview._id);
     await listing.save();
-    
-    // Set flash message
-    req.flash('success', 'Review added successfully!');
     
     res.status(201).json({
       message: 'Review added successfully!',
       review: newReview
     });
   } catch (err) {
-    req.flash('error', 'Error creating review');
     res.status(400).json({ error: "Error creating review: " + err.message });
   }
 });
 
-// DELETE review
-router.delete('/:reviewId', async (req, res) => {
+// DELETE review (PROTECTED - only owner can delete)
+router.delete('/:reviewId', authenticateToken, async (req, res) => {
   try {
     const { id, reviewId } = req.params;
     
-    await Listing.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
-    const deletedReview = await Review.findByIdAndDelete(reviewId);
+    // Find the review first
+    const review = await Review.findById(reviewId);
     
-    if (!deletedReview) {
-      req.flash('error', 'Review not found');
+    if (!review) {
       return res.status(404).json({ error: "Review not found" });
     }
     
-    // Set flash message
-    req.flash('success', 'Review deleted successfully!');
+    // Check if current user is the review owner
+    if (review.owner.toString() !== req.user.userId) {
+      return res.status(403).json({ 
+        error: "You don't have permission to delete this review" 
+      });
+    }
+    
+    // Remove review from listing
+    await Listing.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
+    
+    // Delete the review
+    await Review.findByIdAndDelete(reviewId);
     
     res.json({ message: "Review deleted successfully" });
   } catch (err) {
-    req.flash('error', 'Error deleting review');
     res.status(500).json({ error: "Error deleting review" });
   }
 });

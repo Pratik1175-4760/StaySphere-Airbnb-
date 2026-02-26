@@ -1,127 +1,127 @@
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/listings.models.js');
-const Joi = require('joi');
-
-// Joi Schema
-const listingSchema = Joi.object({
-  title: Joi.string().min(5).max(100).required(),
-  description: Joi.string().min(20).required(),
-  price: Joi.number().positive().max(1000000).required(),
-  location: Joi.string().required(),
-  country: Joi.string().required(),
-  image: Joi.object({
-    filename: Joi.string(),
-    url: Joi.string().uri().required(),
-  }).required(),
-});
+const { authenticateToken, optionalAuth } = require('../middleware/auth.js');
 
 // GET all listings
 router.get('/listings', async (req, res) => {
   try {
-    const listings = await Listing.find({});
+    const listings = await Listing.find({}).populate('owner', 'username');
     res.json(listings);
   } catch (err) {
     res.status(500).json({ error: "Error fetching listings" });
   }
 });
 
-// GET single listing with reviews
-router.get('/listings/:id', async (req, res) => {
+// GET single listing with owner check
+router.get('/listings/:id', optionalAuth, async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id).populate('reviews');
+    const listing = await Listing.findById(req.params.id)
+      .populate({
+        path: 'reviews',
+        populate: {
+          path: 'owner',
+          select: 'username'
+        }
+      })
+      .populate('owner', 'username');
+      
     if (!listing) {
       return res.status(404).json({ error: "Listing not found" });
     }
-    res.json(listing);
+    
+    // Check if current user is the listing owner
+    const isOwner = req.user && listing.owner._id.toString() === req.user.userId;
+    
+    // Add isOwner flag to each review
+    const reviewsWithOwnership = listing.reviews.map(review => ({
+      ...review.toObject(),
+      isOwner: req.user && review.owner._id.toString() === req.user.userId
+    }));
+    
+    res.json({
+      ...listing.toObject(),
+      reviews: reviewsWithOwnership,
+      isOwner
+    });
   } catch (err) {
     res.status(404).json({ error: "Listing not found" });
   }
 });
 
-// POST create listing
-router.post('/listings', async (req, res) => {
+// POST create listing (PROTECTED)
+router.post('/listings', authenticateToken, async (req, res) => {
   try {
-    const { error, value } = listingSchema.validate(req.body);
+    const newListing = new Listing({
+      ...req.body,
+      owner: req.user.userId
+    });
     
-    if (error) {
-      return res.status(400).json({ 
-        error: "Validation error", 
-        details: error.details.map(d => d.message) 
-      });
-    }
-    
-    const newListing = new Listing(value);
     await newListing.save();
-    
-    // Set flash message
-    req.flash('success', 'Listing created successfully!');
     
     res.status(201).json({ 
       message: 'Listing created successfully!',
       listing: newListing 
     });
   } catch (err) {
-    req.flash('error', 'Error creating listing');
     res.status(400).json({ error: "Error creating listing: " + err.message });
   }
 });
 
-// PUT update listing
-router.put('/listings/:id', async (req, res) => {
+// PUT update listing (PROTECTED - only owner)
+router.put('/listings/:id', authenticateToken, async (req, res) => {
   try {
-    const { error, value } = listingSchema.validate(req.body);
+    const listing = await Listing.findById(req.params.id);
     
-    if (error) {
-      return res.status(400).json({ 
-        error: "Validation error", 
-        details: error.details.map(d => d.message) 
+    if (!listing) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+    
+    // Check ownership
+    if (listing.owner.toString() !== req.user.userId) {
+      return res.status(403).json({ 
+        error: "You don't have permission to edit this listing" 
       });
     }
     
     const updatedListing = await Listing.findByIdAndUpdate(
       req.params.id, 
-      value, 
+      req.body, 
       { new: true, runValidators: true }
     );
-    
-    if (!updatedListing) {
-      req.flash('error', 'Listing not found');
-      return res.status(404).json({ error: "Listing not found" });
-    }
-    
-    // Set flash message
-    req.flash('success', 'Listing updated successfully!');
     
     res.json({ 
       message: 'Listing updated successfully!',
       listing: updatedListing 
     });
   } catch (err) {
-    req.flash('error', 'Error updating listing');
     res.status(400).json({ error: "Error updating listing: " + err.message });
   }
 });
 
-// DELETE listing
-router.delete('/listings/:id', async (req, res) => {
+// DELETE listing (PROTECTED - only owner)
+router.delete('/listings/:id', authenticateToken, async (req, res) => {
   try {
-    const listing = await Listing.findByIdAndDelete(req.params.id);
+    const listing = await Listing.findById(req.params.id);
+    
     if (!listing) {
-      req.flash('error', 'Listing not found');
       return res.status(404).json({ error: "Listing not found" });
     }
     
-    // Delete associated reviews
+    // Check ownership
+    if (listing.owner.toString() !== req.user.userId) {
+      return res.status(403).json({ 
+        error: "You don't have permission to delete this listing" 
+      });
+    }
+    
+    await Listing.findByIdAndDelete(req.params.id);
+    
     const Review = require('../models/review.models.js');
     await Review.deleteMany({ _id: { $in: listing.reviews } });
     
-    // Set flash message
-    req.flash('success', 'Listing deleted successfully!');
-    
     res.json({ message: "Listing and reviews deleted successfully" });
   } catch (err) {
-    req.flash('error', 'Error deleting listing');
     res.status(500).json({ error: "Error deleting listing" });
   }
 });

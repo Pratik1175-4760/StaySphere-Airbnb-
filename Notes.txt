@@ -196,3 +196,44 @@ app.use((req, res, next) => {
   res.locals.errorMessages = req.flash('error');
   next();
 });
+
+
+------------------------------
+
+Passport:
+- Passport is an authentication middleware for Node.js that provides a simple and flexible way to authenticate users in your application. It supports various authentication strategies, such as local authentication, OAuth, and more. Passport allows you to easily integrate authentication into your Express applications and manage user sessions.
+
+Steps to use Passport with local strategy:
+1. Install the necessary packages:
+    ```
+    npm install passport passport-local express-session
+    ``` 
+2. Import the required modules in your application:
+    ```javascript
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const User = require('./models/user'); // Assuming you have a User model for authentication
+    ```
+3. Now we require sessions as a middleware to use passport sessions. 
+4. Assuming you have used session as a middleware, you can initialize passport and use passport sessions:
+    ```javascript
+app.use(passport.initialize());
+app.use(passport.session());
+    ```
+-Here passport.session() is used to persist login sessions. It will serialize the user instance to the session and deserialize it on subsequent requests.
+In simple words, passport.initialize() is used to initialize Passport and set up the necessary middleware for authentication, while passport.session() is used to manage user sessions and keep users logged in across multiple requests.
+
+5. Configure the local strategy for authentication:
+    ```javascript
+passport.use(new LocalStrategy(User.authenticate()));
+    ```
+- Here, we are using the LocalStrategy provided by Passport and passing the authenticate method from our User model. This method is responsible for verifying the user's credentials (username and password) during the authentication process.
+- In simple words, the LocalStrategy is a strategy for authenticating users using a username and password. By passing User.authenticate() to the LocalStrategy, we are telling Passport to use the authentication method defined in our User model to verify the user's credentials when they attempt to log in.
+
+6. Set up serialization and deserialization of user instances:
+    ```javascript
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+    ```
+- Serialization is the process of converting a user instance into a format that can be stored in the session (usually a user ID), while deserialization is the process of converting the stored session data back into a user instance. By using User.serializeUser() and User.deserializeUser(), we are telling Passport how to serialize and deserialize user instances based on the methods defined in our User model.
+- In simple words, serialization and deserialization are used to manage user sessions. When a user logs in, their user instance is serialized and stored in the session. When the user makes subsequent requests, the session data is deserialized to retrieve the user instance, allowing Passport to maintain the user's authentication state across requests.

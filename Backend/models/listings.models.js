@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Review = require('./review.models.js');
+
 const listingSchema = new mongoose.Schema(
   {
     title:{
@@ -15,15 +16,15 @@ const listingSchema = new mongoose.Schema(
       required: true
     },
     image: {
-    filename: {
-      type: String,
-      required: true
+      filename: {
+        type: String,
+        required: true
+      },
+      url: {
+        type: String,
+        required: true
+      }
     },
-    url: {
-      type: String,
-      required: true
-    }
-  },
     location:{
       type: String,
       required: true
@@ -32,17 +33,24 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: true
     },
-    reviews: 
-    [
+    reviews: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Review'
       }
-    ]
+    ],
+    owner: {  // NEW FIELD
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   {timestamps: false}
 );
 
 const Listing = mongoose.model('Listing', listingSchema);
-
 module.exports = Listing;
