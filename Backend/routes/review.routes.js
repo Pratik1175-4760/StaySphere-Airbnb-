@@ -1,7 +1,5 @@
 const express = require("express");
-
 const router = express.Router({ mergeParams: true });
-
 const reviewController = require("../controllers/review.controller.js");
 
 const { authenticateToken } = require("../middleware/auth.middlewares.js");

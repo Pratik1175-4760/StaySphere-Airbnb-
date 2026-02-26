@@ -1,54 +1,19 @@
-const express = require('express');
-
+const express = require("express");
 const router = express.Router();
+const listingController = require("../controllers/listing.controller.js");
 
-const listingController =
-require('../controllers/listing.controller.js');
+const {authenticateToken,optionalAuth} = require("../middleware/auth.middlewares.js");
 
-const {
-  authenticateToken,
-  optionalAuth
-} = require('../middleware/auth.middlewares.js');
+router
+  .route("/listings")
+  .get(listingController.getAllListings)
+  .post(authenticateToken, listingController.createListing)
 
-
-
-// GET all listings
-router.get(
-  '/listings',
-  listingController.getAllListings
-);
-
-
-// GET single listing
-router.get(
-  '/listings/:id',
-  optionalAuth,
-  listingController.getListingById
-);
-
-
-// CREATE listing
-router.post(
-  '/listings',
-  authenticateToken,
-  listingController.createListing
-);
-
-
-// UPDATE listing
-router.put(
-  '/listings/:id',
-  authenticateToken,
-  listingController.updateListing
-);
-
-
-// DELETE listing
-router.delete(
-  '/listings/:id',
-  authenticateToken,
-  listingController.deleteListing
-);
-
+router
+  .route("/listings/:id")
+  .get(optionalAuth, listingController.getListingById)
+  .put(authenticateToken, listingController.updateListing)
+  .delete(authenticateToken,listingController.deleteListing,
+)
 
 module.exports = router;
