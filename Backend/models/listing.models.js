@@ -16,11 +16,11 @@ const listingSchema = new mongoose.Schema(
       required: true
     },
     image: {
-      filename: {
+      url: {
         type: String,
         required: true
       },
-      url: {
+      filename: {
         type: String,
         required: true
       }
@@ -39,7 +39,7 @@ const listingSchema = new mongoose.Schema(
         ref: 'Review'
       }
     ],
-    owner: {  // NEW FIELD
+    owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true
@@ -51,6 +51,14 @@ const listingSchema = new mongoose.Schema(
   },
   {timestamps: false}
 );
+
+// Middleware to delete image from Cloudinary when listing is deleted
+listingSchema.post('findOneAndDelete', async function(doc) {
+  if (doc && doc.image && doc.image.filename) {
+    const { cloudinary } = require('../config/cloudinary.config.js');
+    await cloudinary.uploader.destroy(doc.image.filename);
+  }
+});
 
 const Listing = mongoose.model('Listing', listingSchema);
 module.exports = Listing;

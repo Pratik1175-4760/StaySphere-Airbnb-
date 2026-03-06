@@ -1,5 +1,6 @@
 const User = require("../models/user.models.js");
-
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../middleware/auth.middlewares.js');
 exports.signUp = async (req, res) => {
   try {
     const { username, email, password } = req.body;

@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../controllers/user.controller.js')
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/auth.middlewares.js');
+
 
 // Signup Route
 router.post('/signup',User.signUp);

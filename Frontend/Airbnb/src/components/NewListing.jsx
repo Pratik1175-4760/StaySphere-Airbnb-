@@ -3,21 +3,21 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import FlashMessage from './FlashMessage';
 
-function NewListing({setListings}) {
+function NewListing() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [flashMessage, setFlashMessage] = useState({ message: '', type: '' });
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
     location: '',
     country: '',
-    image: {
-      filename: 'listingimage',
-      url: ''
-    }
+    image: null  // Changed from image object to file
   });
 
   const validateField = (name, value) => {
@@ -47,10 +47,16 @@ function NewListing({setListings}) {
         if (!value.trim()) return 'Country is required';
         return '';
       
-      case 'imageUrl':
-        if (!value.trim()) return 'Image URL is required';
-        if (!value.startsWith('http://') && !value.startsWith('https://')) {
-          return 'Please enter a valid URL starting with http:// or https://';
+      case 'image':
+        if (!value) return 'Image is required';
+        // Check file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(value.type)) {
+          return 'Please upload a valid image (JPEG, PNG, or WebP)';
+        }
+        // Check file size (5MB)
+        if (value.size > 5 * 1024 * 1024) {
+          return 'Image size must be less than 5MB';
         }
         return '';
       
@@ -61,18 +67,26 @@ function NewListing({setListings}) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    const error = validateField(name, value);
+    setErrors({ ...errors, [name]: error });
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
     
-    if (name === 'imageUrl') {
-      setFormData({
-        ...formData,
-        image: { ...formData.image, url: value }
-      });
-      const error = validateField('imageUrl', value);
-      setErrors({ ...errors, imageUrl: error });
-    } else {
-      setFormData({ ...formData, [name]: value });
-      const error = validateField(name, value);
-      setErrors({ ...errors, [name]: error });
+    if (file) {
+      setFormData({ ...formData, image: file });
+      const error = validateField('image', file);
+      setErrors({ ...errors, image: error });
+      setTouched({ ...touched, image: true });
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -90,7 +104,7 @@ function NewListing({setListings}) {
       price: validateField('price', formData.price),
       location: validateField('location', formData.location),
       country: validateField('country', formData.country),
-      imageUrl: validateField('imageUrl', formData.image.url),
+      image: validateField('image', formData.image),
     };
     
     setErrors(newErrors);
@@ -100,7 +114,7 @@ function NewListing({setListings}) {
       price: true,
       location: true,
       country: true,
-      imageUrl: true,
+      image: true,
     });
     
     // Check if there are any errors
@@ -113,40 +127,51 @@ function NewListing({setListings}) {
       return;
     }
     
+    setIsSubmitting(true);
+
     try {
-      const response = await axios.post('http://localhost:3000/listings', formData);
-      
-      setListings(prev => [...prev, response.data.listing]);
-      // Show success message
+      // Create FormData object
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('price', formData.price);
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('country', formData.country);
+      formDataToSend.append('image', formData.image);
+
+      const response = await axios.post(
+        'http://localhost:3000/listings',
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
       setFlashMessage({ 
         message: response.data.message || 'Listing created successfully!', 
         type: 'success' 
       });
-
-      setFormData(formData);
       
-      // Navigate after 2 seconds
       setTimeout(() => {
         navigate('/');
       }, 2000);
-
-
       
     } catch (err) {
       console.error("Error creating listing", err);
-      
-      // Show error message
       setFlashMessage({ 
         message: err.response?.data?.error || 'Error creating listing. Please try again.', 
         type: 'error' 
       });
+      setIsSubmitting(false);
     }
   };
 
   const getInputClasses = (fieldName) => {
     const baseClasses = "w-full px-4 py-3 border rounded-xl outline-none transition-all placeholder:text-gray-400";
     const hasError = touched[fieldName] && errors[fieldName];
-    const isValid = touched[fieldName] && !errors[fieldName] && formData[fieldName === 'imageUrl' ? 'image' : fieldName];
+    const isValid = touched[fieldName] && !errors[fieldName] && formData[fieldName];
     
     if (hasError) {
       return `${baseClasses} border-red-500 focus:ring-2 focus:ring-red-200 focus:border-red-500 bg-red-50`;
@@ -159,7 +184,6 @@ function NewListing({setListings}) {
 
   return (
     <>
-      {/* Flash Message Component */}
       <FlashMessage 
         message={flashMessage.message} 
         type={flashMessage.type}
@@ -237,7 +261,7 @@ function NewListing({setListings}) {
               )}
             </div>
 
-            {/* Price and Image URL */}
+            {/* Price and Location */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
@@ -270,38 +294,6 @@ function NewListing({setListings}) {
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-                  <i className="fa-solid fa-image mr-2 text-rose-500"></i>
-                  Image URL
-                  <span className="text-rose-500 ml-1">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="imageUrl"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.image.url}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur('imageUrl')}
-                  className={getInputClasses('imageUrl')}
-                />
-                {touched.imageUrl && errors.imageUrl && (
-                  <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
-                    <i className="fa-solid fa-circle-exclamation"></i>
-                    <span>{errors.imageUrl}</span>
-                  </div>
-                )}
-                {touched.imageUrl && !errors.imageUrl && formData.image.url && (
-                  <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
-                    <i className="fa-solid fa-circle-check"></i>
-                    <span>Valid URL</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Location and Country */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
                   <i className="fa-solid fa-location-dot mr-2 text-rose-500"></i>
                   Location
                   <span className="text-rose-500 ml-1">*</span>
@@ -328,50 +320,89 @@ function NewListing({setListings}) {
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
-                  <i className="fa-solid fa-earth-americas mr-2 text-rose-500"></i>
-                  Country
-                  <span className="text-rose-500 ml-1">*</span>
-                </label>
+            {/* Country */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                <i className="fa-solid fa-earth-americas mr-2 text-rose-500"></i>
+                Country
+                <span className="text-rose-500 ml-1">*</span>
+              </label>
+              <input
+                type="text"
+                name="country"
+                placeholder="e.g. United States"
+                value={formData.country}
+                onChange={handleChange}
+                onBlur={() => handleBlur('country')}
+                className={getInputClasses('country')}
+              />
+              {touched.country && errors.country && (
+                <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
+                  <i className="fa-solid fa-circle-exclamation"></i>
+                  <span>{errors.country}</span>
+                </div>
+              )}
+              {touched.country && !errors.country && formData.country && (
+                <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                  <i className="fa-solid fa-circle-check"></i>
+                  <span>Valid country</span>
+                </div>
+              )}
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                <i className="fa-solid fa-image mr-2 text-rose-500"></i>
+                Upload Image
+                <span className="text-rose-500 ml-1">*</span>
+              </label>
+              
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-rose-500 transition-colors">
                 <input
-                  type="text"
-                  name="country"
-                  placeholder="e.g. United States"
-                  value={formData.country}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur('country')}
-                  className={getInputClasses('country')}
+                  type="file"
+                  name="image"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="image-upload"
                 />
-                {touched.country && errors.country && (
-                  <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
-                    <i className="fa-solid fa-circle-exclamation"></i>
-                    <span>{errors.country}</span>
-                  </div>
-                )}
-                {touched.country && !errors.country && formData.country && (
-                  <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
-                    <i className="fa-solid fa-circle-check"></i>
-                    <span>Valid country</span>
-                  </div>
-                )}
+                <label 
+                  htmlFor="image-upload" 
+                  className="cursor-pointer flex flex-col items-center space-y-2"
+                >
+                  <i className="fa-solid fa-cloud-arrow-up text-4xl text-gray-400"></i>
+                  <span className="text-gray-600">Click to upload or drag and drop</span>
+                  <span className="text-sm text-gray-400">PNG, JPG, WebP up to 5MB</span>
+                </label>
               </div>
+
+              {touched.image && errors.image && (
+                <div className="flex items-center space-x-2 text-red-600 text-sm ml-1">
+                  <i className="fa-solid fa-circle-exclamation"></i>
+                  <span>{errors.image}</span>
+                </div>
+              )}
+              
+              {formData.image && !errors.image && (
+                <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                  <i className="fa-solid fa-circle-check"></i>
+                  <span>{formData.image.name} - Ready to upload!</span>
+                </div>
+              )}
             </div>
 
             {/* Image Preview */}
-            {formData.image.url && !errors.imageUrl && (
+            {imagePreview && !errors.image && (
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700 ml-1">Preview</label>
                 <div className="border-2 border-gray-200 rounded-xl overflow-hidden">
                   <img 
-                    src={formData.image.url} 
+                    src={imagePreview} 
                     alt="Preview" 
                     className="w-full h-64 object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      setErrors({ ...errors, imageUrl: 'Failed to load image. Please check the URL.' });
-                    }}
                   />
                 </div>
               </div>
@@ -381,15 +412,26 @@ function NewListing({setListings}) {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button
                 type="submit"
-                className="flex-1 bg-rose-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-rose-600 active:scale-95 transition-all shadow-md flex items-center justify-center space-x-2"
+                disabled={isSubmitting}
+                className="flex-1 bg-rose-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-rose-600 active:scale-95 transition-all shadow-md flex items-center justify-center space-x-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                <i className="fa-solid fa-check"></i>
-                <span>Create Listing</span>
+                {isSubmitting ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin"></i>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-check"></i>
+                    <span>Create Listing</span>
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="flex-1 bg-white text-gray-700 py-3 px-6 rounded-xl font-semibold border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center space-x-2"
+                disabled={isSubmitting}
+                className="flex-1 bg-white text-gray-700 py-3 px-6 rounded-xl font-semibold border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <i className="fa-solid fa-xmark"></i>
                 <span>Cancel</span>

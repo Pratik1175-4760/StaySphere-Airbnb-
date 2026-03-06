@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './Navbar'
 import Footer from './Footer'
 
+
 function App() {
   const [listings, setListings] = useState([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -34,7 +35,7 @@ function App() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-      
+
       <div className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
           <Route path="/" element={
