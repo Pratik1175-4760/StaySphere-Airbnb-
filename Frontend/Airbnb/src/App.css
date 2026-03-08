@@ -1,5 +1,33 @@
 @import "tailwindcss";
 
+/* Map container */
+.mapboxgl-map { 
+  position: relative;
+  overflow: hidden;
+}
+
+/* Zoom controls */
+.mapboxgl-ctrl-zoom-in,
+.mapboxgl-ctrl-zoom-out {
+  background: white;
+  border-radius: 4px;
+  /* ... styling */
+}
+
+/* Markers */
+.mapboxgl-marker {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* Popups */
+.mapboxgl-popup {
+  position: absolute;
+  background: white;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);

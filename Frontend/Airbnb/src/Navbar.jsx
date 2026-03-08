@@ -35,19 +35,9 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
-              className={`text-sm font-medium pb-1 border-b-2 transition-colors ${
-                isActive('/') 
-                  ? 'text-gray-900 border-gray-900' 
-                  : 'text-gray-500 border-transparent hover:text-gray-900'
-              }`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/"
               className="text-sm font-medium pb-1 border-b-2  text-gray-500 hover:text-gray-900 transition-colors"
             >
-              All Listings
+              Explore
             </Link>
             {user && (
               <Link
@@ -58,7 +48,7 @@ export default function Navbar() {
                     : 'text-gray-500 border-transparent hover:text-gray-900'
                 }`}
               >
-                Add new Listing
+                Register Your Home
               </Link>
             )}
           </div>

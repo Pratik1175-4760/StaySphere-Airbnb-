@@ -10,7 +10,6 @@ function ListingDetail({ onDelete }) {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -27,22 +26,10 @@ function ListingDetail({ onDelete }) {
     fetchListing();
   }, [id]);
 
-  // Aggressive Scroll Reset
+  // SIMPLE SCROLL TO TOP - Only when ID changes
   useEffect(() => {
-    const scrollToTop = () =>
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-
-    if (!loading && listing) {
-      scrollToTop(); // Run immediately after data load
-      const t1 = setTimeout(scrollToTop, 100); // Run after Mapbox container mounts
-      const t2 = setTimeout(scrollToTop, 500); // Run after Mapbox Canvas initializes
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
-    }
-  }, [id, loading, listing]);
+    window.scrollTo(0, 0);
+  }, [id]); // Only depends on ID, not loading or listing
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this listing?"))
@@ -97,94 +84,98 @@ function ListingDetail({ onDelete }) {
   }
 
   return (
-    <div>
-      <div className="flex justify-start mb-4">
-        <Link
-          to="/"
-          className="inline-flex items-center space-x-2 text-gray-600 hover:text-rose-500 transition-colors font-medium"
-        >
-          <i className="fa-solid fa-arrow-left text-sm"></i>
-          <span>Back to listings</span>
-        </Link>
-      </div>
-      <div className="max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          {listing.title}
-        </h1>
+    <div className="max-w-4xl mx-auto py-8">
+      {/* Back Button */}
+      <Link
+        to="/"
+        className="inline-flex items-center space-x-2 text-gray-600 hover:text-rose-500 transition-colors font-medium mb-6"
+      >
+        <i className="fa-solid fa-arrow-left text-sm"></i>
+        <span>Back to listings</span>
+      </Link>
 
-        <div className="rounded-2xl overflow-hidden mb-8 aspect-video bg-gray-200">
-          {listing.image?.url ? (
-            <img
-              src={listing.image.url}
-              className="w-full h-full object-cover"
-              alt={listing.title}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <i className="fa-regular fa-image text-6xl text-gray-400"></i>
-            </div>
-          )}
-        </div>
+      {/* Title */}
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        {listing.title}
+      </h1>
 
-        <div className="border-b border-gray-200 pb-6 mb-6">
-          <div className="flex items-center space-x-2 text-gray-600 mb-4">
-            <i className="fa-solid fa-location-dot text-rose-500"></i>
-            <span className="text-lg">
-              {listing.location}, {listing.country}
-            </span>
-          </div>
-          <p className="text-gray-700 leading-relaxed text-lg">
-            {listing.description}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <span className="text-3xl font-bold text-gray-900">
-              ₹ {listing.price}
-            </span>
-            <span className="text-gray-500 text-lg"> / night</span>
-          </div>
-
-          {listing.isOwner && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate(`/listing/${id}/edit`)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center space-x-2"
-              >
-                <i className="fa-solid fa-pen"></i>
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-6 py-2 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-600 transition-all flex items-center space-x-2"
-              >
-                <i className="fa-solid fa-trash"></i>
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        <Review
-          listingId={id}
-          reviews={listing.reviews || []}
-          onReviewAdded={handleReviewAdded}
-        />
-
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6 flex items-center">
-            <i className="fa-solid fa-location-dot text-rose-500 mr-3"></i>
-            Where you'll be
-          </h2>
-          <MapboxMap
-            location={listing.location}
-            country={listing.country}
-            title={listing.title}
-            price={listing.price}
-            imageUrl={listing.image?.url}
+      {/* Image */}
+      <div className="rounded-2xl overflow-hidden mb-8 aspect-video bg-gray-200">
+        {listing.image?.url ? (
+          <img
+            src={listing.image.url}
+            className="w-full h-full object-cover"
+            alt={listing.title}
           />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <i className="fa-regular fa-image text-6xl text-gray-400"></i>
+          </div>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="border-b border-gray-200 pb-6 mb-6">
+        <div className="flex items-center space-x-2 text-gray-600 mb-4">
+          <i className="fa-solid fa-location-dot text-rose-500"></i>
+          <span className="text-lg">
+            {listing.location}, {listing.country}
+          </span>
         </div>
+        <p className="text-gray-700 leading-relaxed text-lg">
+          {listing.description}
+        </p>
+      </div>
+
+      {/* Price and Actions */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <span className="text-3xl font-bold text-gray-900">
+            ₹ {listing.price}
+          </span>
+          <span className="text-gray-500 text-lg"> / night</span>
+        </div>
+
+        {listing.isOwner && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate(`/listing/${id}/edit`)}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center space-x-2"
+            >
+              <i className="fa-solid fa-pen"></i>
+              <span>Edit</span>
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-6 py-2 bg-rose-500 text-white rounded-lg font-semibold hover:bg-rose-600 transition-all flex items-center space-x-2"
+            >
+              <i className="fa-solid fa-trash"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Reviews */}
+      <Review
+        listingId={id}
+        reviews={listing.reviews || []}
+        onReviewAdded={handleReviewAdded}
+      />
+
+      {/* Map */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6 flex items-center">
+          <i className="fa-solid fa-location-dot text-rose-500 mr-3"></i>
+          Where you'll be
+        </h2>
+        <MapboxMap
+          location={listing.location}
+          country={listing.country}
+          title={listing.title}
+          price={listing.price}
+          imageUrl={listing.image?.url}
+        />
       </div>
     </div>
   );
