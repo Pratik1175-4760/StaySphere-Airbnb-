@@ -33,6 +33,13 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    // ← ADD CATEGORY FIELD
+    category: {
+      type: String,
+      enum: ['Trending', 'Rooms', 'Mountain', 'Lake', 'Camping', 'Arctic', 'Cabins', 'Beach'],
+      default: 'Rooms',
+      required: true
+    },
     reviews: [
       {
         type: mongoose.Schema.Types.ObjectId,

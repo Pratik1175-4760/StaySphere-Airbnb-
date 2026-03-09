@@ -17,8 +17,20 @@ function NewListing() {
     price: '',
     location: '',
     country: '',
-    image: null  // Changed from image object to file
+    category: 'Rooms',  // ← ADD THIS
+    image: null
   });
+
+  // Category options with icons
+  const categories = [
+    { value: 'Rooms', label: 'Rooms', icon: 'fa-bed' },
+    { value: 'Mountain', label: 'Mountain', icon: 'fa-mountain' },
+    { value: 'Lake', label: 'Lake', icon: 'fa-water' },
+    { value: 'Camping', label: 'Camping', icon: 'fa-campground' },
+    { value: 'Arctic', label: 'Arctic', icon: 'fa-snowflake' },
+    { value: 'Cabins', label: 'Cabins', icon: 'fa-house' },
+    { value: 'Beach', label: 'Beach', icon: 'fa-umbrella-beach' },
+  ];
 
   const validateField = (name, value) => {
     switch (name) {
@@ -47,14 +59,16 @@ function NewListing() {
         if (!value.trim()) return 'Country is required';
         return '';
       
+      case 'category':
+        if (!value) return 'Category is required';
+        return '';
+      
       case 'image':
         if (!value) return 'Image is required';
-        // Check file type
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
         if (!validTypes.includes(value.type)) {
           return 'Please upload a valid image (JPEG, PNG, or WebP)';
         }
-        // Check file size (5MB)
         if (value.size > 5 * 1024 * 1024) {
           return 'Image size must be less than 5MB';
         }
@@ -81,7 +95,6 @@ function NewListing() {
       setErrors({ ...errors, image: error });
       setTouched({ ...touched, image: true });
 
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -97,13 +110,13 @@ function NewListing() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate all fields
     const newErrors = {
       title: validateField('title', formData.title),
       description: validateField('description', formData.description),
       price: validateField('price', formData.price),
       location: validateField('location', formData.location),
       country: validateField('country', formData.country),
+      category: validateField('category', formData.category),
       image: validateField('image', formData.image),
     };
     
@@ -114,10 +127,10 @@ function NewListing() {
       price: true,
       location: true,
       country: true,
+      category: true,
       image: true,
     });
     
-    // Check if there are any errors
     const hasErrors = Object.values(newErrors).some(error => error !== '');
     if (hasErrors) {
       setFlashMessage({ 
@@ -130,13 +143,13 @@ function NewListing() {
     setIsSubmitting(true);
 
     try {
-      // Create FormData object
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('description', formData.description);
       formDataToSend.append('price', formData.price);
       formDataToSend.append('location', formData.location);
       formDataToSend.append('country', formData.country);
+      formDataToSend.append('category', formData.category);  // ← ADD THIS
       formDataToSend.append('image', formData.image);
 
       const response = await axios.post(
@@ -257,6 +270,41 @@ function NewListing() {
                 <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
                   <i className="fa-solid fa-circle-check"></i>
                   <span>Great description!</span>
+                </div>
+              )}
+            </div>
+
+            {/* Category - NEW FIELD */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center">
+                <i className="fa-solid fa-tag mr-2 text-rose-500"></i>
+                Category
+                <span className="text-rose-500 ml-1">*</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, category: cat.value });
+                      setTouched({ ...touched, category: true });
+                    }}
+                    className={`p-4 border-2 rounded-xl flex flex-col items-center space-y-2 transition-all ${
+                      formData.category === cat.value
+                        ? 'border-rose-500 bg-rose-50 text-rose-600'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    <i className={`fa-solid ${cat.icon} text-2xl`}></i>
+                    <span className="text-sm font-medium">{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+              {touched.category && !errors.category && formData.category && (
+                <div className="flex items-center space-x-2 text-green-600 text-sm ml-1">
+                  <i className="fa-solid fa-circle-check"></i>
+                  <span>Category selected!</span>
                 </div>
               )}
             </div>
